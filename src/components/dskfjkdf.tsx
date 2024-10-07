@@ -1,10 +1,10 @@
 import {
   Container,
+  Autocomplete,
   TextField,
   Button,
   Box,
   Typography,
-  Autocomplete,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import { Outlet, useNavigate } from "react-router-dom";
@@ -29,11 +29,43 @@ const InputCity = ({
   handleLocation,
 }: Props) => {
   const navigate = useNavigate();
+  const [citySuggestions, setCitySuggestions] = useState<string[]>([]);
 
   const handleFetch = () => {
     fetchWeatherData();
     navigate("/display");
   };
+
+  // Function to fetch city suggestions based on the input
+  const fetchCitySuggestions = async (query: string) => {
+    if (!query) return;
+
+    try {
+      const response = await axios.get(
+        "https://wft-geo-db.p.rapidapi.com/v1/geo/cities",
+        {
+          params: { namePrefix: query, limit: 5 }, // You can set limit as per requirement
+          headers: {
+            "x-rapidapi-key":
+              "d7c1eee3a3msh32890ba6125fdc3p17b479jsn3a7426f5db55",
+            "x-rapidapi-host": "wft-geo-db.p.rapidapi.com",
+          },
+        }
+      );
+
+      const cities = response.data.data.map((city: any) => city.name);
+      setCitySuggestions(cities);
+    } catch (error) {
+      console.error("Failed to fetch city suggestions:", error);
+    }
+  };
+
+  // Fetch city suggestions when the input changes
+  useEffect(() => {
+    if (inputCity) {
+      fetchCitySuggestions(inputCity);
+    }
+  }, [inputCity]);
 
   const Image = styled(Box)({
     backgroundImage: `url(${image})`,
@@ -47,31 +79,6 @@ const InputCity = ({
       transform: "scale(1.05)",
     },
   });
-  const [suggestions, SetSuggestions] = useState<string[]>([]);
-  const fetchOptions = async (query: string) => {
-    const options = {
-      method: "GET",
-      url: "https://wft-geo-db.p.rapidapi.com/v1/geo/cities/Q60/nearbyCities",
-      params: { radius: "100", namePrefix: query },
-      headers: {
-        "x-rapidapi-key": "d7c1eee3a3msh32890ba6125fdc3p17b479jsn3a7426f5db55",
-        "x-rapidapi-host": "wft-geo-db.p.rapidapi.com",
-      },
-    };
-
-    try {
-      const response = await axios.request(options);
-      SetSuggestions(response.data.data.map((city: string) => city.name));
-    } catch (error) {
-      console.error(error);
-    }
-  };
-  useEffect(() => {
-    if (inputCity) {
-      fetchOptions(inputCity);
-      handleFetch();
-    }
-  }, [inputCity]);
 
   return (
     <Container
@@ -131,15 +138,15 @@ const InputCity = ({
           }}
         >
           <Autocomplete
-            options={suggestions}
-            onInputChange={(_, newVal) => setInputCity(newVal)}
-            sx={{ width: "50%" }}
+            freeSolo
+            options={citySuggestions}
+            onInputChange={(event, newValue) => setInputCity(newValue)}
             renderInput={(params) => (
               <TextField
                 {...params}
                 label="Enter City"
                 sx={{
-                  width: "75%",
+                  width: "100%", // Use 100% width for better alignment
                   "& .MuiOutlinedInput-root": {
                     "& fieldset": {
                       borderColor: "#4F6272",
@@ -152,19 +159,11 @@ const InputCity = ({
                     },
                   },
                 }}
-                // value={inputCity}
-                // onChange={(e) => setInputCity(e.target.value)}
-              ></TextField>
+              />
             )}
-          ></Autocomplete>
-
-          <Tooltip
-            title="Get current location"
-            onClick={() => {
-              handleLocation();
-            }}
-          >
-            <GpsFixedIcon></GpsFixedIcon>
+          />
+          <Tooltip title="Get current location" onClick={handleLocation}>
+            <GpsFixedIcon />
           </Tooltip>
           <Button
             onClick={handleFetch}
