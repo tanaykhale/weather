@@ -1,6 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import axios from "axios";
-
 import {
   createBrowserRouter,
   createRoutesFromElements,
@@ -10,6 +9,7 @@ import {
 
 const InputCity = lazy(() => import("./components/InputCity"));
 const Display = lazy(() => import("./components/Display"));
+
 export default function App() {
   const [inputCity, setInputCity] = useState("");
   const [weatherData, setWeatherData] = useState(null);
@@ -17,16 +17,25 @@ export default function App() {
   const [error, setError] = useState("");
   const [lat, setLat] = useState<number | null>(null);
   const [lon, setLon] = useState<number | null>(null);
-  const [locationapi, setLocationapi] = useState<boolean>(false);
 
-  const apiKey = "8bNErOkA9bUF9Vx1z1DVE3YlzQe1tW97";
+  const API_KEY_WEATHER = "8bNErOkA9bUF9Vx1z1DVE3YlzQe1tW97";
+  const API_KEY_LOCATION = "pk.8726f34fa6e08015f900fd0a94f63076";
+
   const handleLocation = () => {
-    navigator.geolocation.getCurrentPosition((position) => {
-      setLon(position.coords.longitude);
-      setLat(position.coords.latitude);
-      setLocationapi(true);
-    });
+    if (!navigator.geolocation) {
+      setError("Geolocation is not supported by your browser.");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLon(position.coords.longitude);
+        setLat(position.coords.latitude);
+      },
+      () => setError("Unable to fetch location. Please try again.")
+    );
   };
+
   const fetchWeatherData = async () => {
     if (!inputCity) {
       setError("Please enter a city name");
@@ -35,57 +44,37 @@ export default function App() {
 
     setError("");
     setLoading(true);
+
     try {
       const response = await axios.get(
-        `https://api.tomorrow.io/v4/weather/realtime?location=${inputCity}&apikey=${apiKey}`
+        `https://api.tomorrow.io/v4/weather/realtime?location=${inputCity}&apikey=${API_KEY_WEATHER}`
       );
       setWeatherData(response.data);
-      setLoading(false);
     } catch (err) {
       setError("Failed to fetch weather data. Please try again.");
+    } finally {
       setLoading(false);
     }
   };
-  // const [search,setSearch]=useState(false)
-  // useEffect(() => {
-  //   const fetchWeatherData = async () => {
-  //     if (!inputCity) {
-  //       setError("Please enter a city name");
-  //       return;
-  //     }
-
-  //     setError("");
-  //     setLoading(true);
-  //     try {
-  //       const response = await axios.get(
-  //         `https://api.tomorrow.io/v4/weather/realtime?location=${inputCity}&apikey=${apiKey}`
-  //       );
-  //       setWeatherData(response.data);
-  //       setLoading(false);
-  //     } catch (err) {
-  //       setError("Failed to fetch weather data. Please try again.");
-  //       setLoading(false);
-  //     }
-  //   };
-
-  //   // Call API only when inputCity is not empty
-  //   if (inputCity) {
-  //     fetchWeatherData();
-  //   }
-  // }, [search]);
 
   useEffect(() => {
-    if (locationapi && lat && lon) {
-      //pk.8726f34fa6e08015f900fd0a94f63076
-      axios
-        .get(
-          `https://us1.locationiq.com/v1/reverse?key=pk.8726f34fa6e08015f900fd0a94f63076&lat=${lat}&lon=${lon}&format=json&`
-        )
-        .then((data) => {
-          setInputCity(data.data.address.city);
-        });
-    }
-  }, [locationapi, lat, lon]);
+    const fetchCityFromCoordinates = async () => {
+      if (lat && lon) {
+        try {
+          const { data } = await axios.get(
+            `https://us1.locationiq.com/v1/reverse?key=${API_KEY_LOCATION}&lat=${lat}&lon=${lon}&format=json`
+          );
+          const city = data?.address?.city;
+          if (city) setInputCity(city);
+        } catch {
+          setError("Failed to fetch city from coordinates. Please try again.");
+        }
+      }
+    };
+
+    fetchCityFromCoordinates();
+  }, [lat, lon]);
+
   const router = createBrowserRouter(
     createRoutesFromElements(
       <>
@@ -94,11 +83,10 @@ export default function App() {
           element={
             <InputCity
               inputCity={inputCity}
-              // setSearch={setSearch}
               setInputCity={setInputCity}
               fetchWeatherData={fetchWeatherData}
               handleLocation={handleLocation}
-            ></InputCity>
+            />
           }
         >
           <Route
@@ -108,17 +96,17 @@ export default function App() {
                 loading={loading}
                 error={error}
                 weatherData={weatherData}
-              ></Display>
+              />
             }
-          ></Route>
+          />
         </Route>
       </>
     )
   );
 
   return (
-    <Suspense fallback={<div>Loading............</div>}>
-      <RouterProvider router={router} />;
+    <Suspense fallback={<div>Loading...</div>}>
+      <RouterProvider router={router} />
     </Suspense>
   );
 }
