@@ -13,7 +13,7 @@ import GpsFixedIcon from "@mui/icons-material/GpsFixed";
 import image from "../assets/bg.jpg";
 import { useRef } from "react";
 import "./InputCity.css";
-
+const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
 interface Props {
   inputCity: string;
   setInputCity: (value: string) => void;
@@ -125,10 +125,7 @@ const InputCity: React.FC<Props> = ({
         </Typography>
 
         <SearchBoxContainer>
-          <LoadScript
-            googleMapsApiKey="AIzaSyBtAY7_uB_rluew7nbk65v3SMAXQRZm03k"
-            libraries={["places"]}
-          >
+          <LoadScript googleMapsApiKey={apiKey} libraries={["places"]}>
             <StandaloneSearchBox
               onLoad={(ref) => (inputRef.current = ref)}
               onPlacesChanged={handlePlaceChange}

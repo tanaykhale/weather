@@ -18,8 +18,8 @@ export default function App() {
   const [lat, setLat] = useState<number | null>(null);
   const [lon, setLon] = useState<number | null>(null);
 
-  const API_KEY_WEATHER = "8bNErOkA9bUF9Vx1z1DVE3YlzQe1tW97";
-  const API_KEY_LOCATION = "pk.8726f34fa6e08015f900fd0a94f63076";
+  const API_KEY_WEATHER = import.meta.env.VITE_API_KEY_WEATHER;
+  const API_KEY_LOCATION = import.meta.env.VITE_API_KEY_LOCATION;
 
   const handleLocation = () => {
     if (!navigator.geolocation) {
